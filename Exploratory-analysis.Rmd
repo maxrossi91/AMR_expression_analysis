@@ -1,0 +1,184 @@
+---
+title: "Exploratory analysis"
+date: 2022-02-18
+output: html_document
+params:
+    conditionA: "Group 1"
+    conditionB: "Group 4"
+---
+```{r, setup, include = FALSE}
+library("tximportData")
+library("tximport")
+library("readr")
+library("rtracklayer")
+library("DESeq2")
+library(tidyverse)
+library(ggplot2)
+library("genefilter")
+library("pheatmap")
+library("RColorBrewer")
+library("knitr")
+
+tx2geneFromGtf <- function(filepath) {
+    # txdb = makeTxDbFromGFF("/blue/boucher/share/subhashine-project/Salmonella.gtf", format="gtf")
+    gtf = import(filepath)
+    tx2gene = tibble(
+        txid = gtf$transcript_id,
+        geneid = as.character(gtf$gene_id)
+    ) %>% na.omit()
+    return(tx2gene)
+}
+
+# Load tx2genes files and concatenate them
+tx2geneSalmonella <- tx2geneFromGtf(file.path("gtfs/", "Salmonella.gtf"))
+tx2geneEcoli <- tx2geneFromGtf(file.path("gtfs/", "ECOLI_9079.gtf"))
+tx2genePlasmid <- tx2geneFromGtf(file.path("gtfs/", "plasmid.gtf"))
+
+tx2gene <- rbind(tx2geneSalmonella, tx2geneEcoli, tx2genePlasmid)
+
+
+# Load samples filenames and descriptions
+samples <- read.csv(file.path("samples-2022-02-18.csv"), header=TRUE)
+
+
+conditionA <- params$conditionA
+conditionB <- params$conditionB
+
+
+cAsamples = filter(samples, Group == conditionA)
+
+filesA <- file.path("/blue/boucher/share/subhashine-project", cAsamples$Path, "quant.sf")
+names(filesA) <- cAsamples$Sample.Name
+
+cBsamples = filter(samples, Group == conditionB)
+filesB <- file.path("/blue/boucher/share/subhashine-project", cBsamples$Path, "quant.sf")
+names(filesB) <- cBsamples$Sample.Name
+
+txiA <- tximport(filesA, type="salmon", tx2gene=tx2gene)
+txiB <- tximport(filesB, type="salmon", tx2gene=tx2gene)
+
+# Find common genes
+genesA <- rownames(txiA$abundance)
+genesB <- rownames(txiB$abundance)
+
+commonGenes <- intersect(genesA, genesB)
+
+txi <- vector("list", length(names(txiA)))
+names(txi) <- names(txiA)
+for(column in names(txiA)){
+    if(column == "countsFromAbundance"){
+        txi[[column]] <- txiA[[column]]
+    } else {
+        df <- merge(txiA[[column]], txiB[[column]], by=0.0, all=TRUE)
+        df[is.na(df)] <- 0 
+        rownames(df) <- df$Row.names
+        df1 <- df[(!names(df) %in% c("Row.names"))]
+        txi[[column]] <-data.matrix(df1[(row.names(df1) %in% c(commonGenes)),])
+    }
+}
+
+
+fsamples = filter(samples, (Group == conditionA) | (Group == conditionB))
+
+ddsTxi <- DESeqDataSetFromTximport(txi,
+                                colData = fsamples,
+                                design = ~ Group)
+
+dds <- DESeq(ddsTxi)
+
+```
+
+## P-values histogram
+>Another useful diagnostic plot is the histogram of the p values (figure below). This plot is best formed by excluding genes with very small counts, which otherwise generate spikes in the histogram.
+
+```{r, echo = FALSE}
+maineffg=results(dds, contrast=c("Group",conditionA,conditionB))
+hist(maineffg$pvalue[maineffg$baseMean > 1],
+    main=paste("p-values of ",conditionA,"vs",conditionB,sep=" "),
+    xlab="p-values", 
+    breaks=0:20/20, 
+    col="grey50", 
+    border="white")
+```
+
+## List of genes with lowest pvalue
+> The first column, baseMean, is a just the average of the normalized count values, divided by the size factors, taken over all samples in the DESeqDataSet. 
+> The column log2FoldChange is the effect size estimate. It tells us how much the gene’s expression seems to have changed. This value is reported on a logarithmic scale to base 2: for example, a log2 fold change of 1.5 means that the gene’s expression is increased by a multiplicative factor of 21.5≈2.82
+> Of course, this estimate has an uncertainty associated with it, which is available in the column lfcSE, the standard error estimate for the log2 fold change estimate. 
+> We can also express the uncertainty of a particular effect size estimate as the result of a statistical test. The purpose of a test for differential expression is to test whether the data provides sufficient evidence to conclude that this value is really different from zero. DESeq2 performs for each gene a hypothesis test to see whether evidence is sufficient to decide against the null hypothesis that there is zero effect of the treatment on the gene and that the observed difference between treatment and control was merely caused by experimental variability (i.e., the type of variability that you can expect between different samples in the same treatment group). As usual in statistics, the result of this test is reported as a p value, and it is found in the column pvalue. Remember that a p value indicates the probability that a fold change as strong as the observed one, or even stronger, would be seen under the situation described by the null hypothesis.
+>
+> From [here](https://bioconductor.org/packages/release/workflows/vignettes/rnaseqGene/inst/doc/rnaseqGene.html#building-the-results-table).
+
+
+```{r, echo = FALSE, results='asis'}
+tmp = maineffg[maineffg$baseMean > 1,]
+pval_tab=head(tmp[order(tmp$pvalue),], 30)
+
+kable(pval_tab, caption = "List of genes with lowest pvalue")
+```
+
+## Cook's distance
+>The DESeq function calculates, for every gene and for every sample, a diagnostic test for outliers called Cook’s distance. Cook’s distance is a measure of how much a single sample is influencing the fitted coefficients for a gene, and a large value of Cook’s distance is intended to indicate an outlier count. [More Info](http://bioconductor.org/packages/devel/bioc/vignettes/DESeq2/inst/doc/DESeq2.html#why-un-normalized-counts)
+
+```{r, echo = FALSE}
+boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2,
+        main=paste("Cook's distance of ",conditionA,"vs",conditionB,sep=" "))
+```
+
+# Exploratory analysis and visualization.
+```{r, include = FALSE}
+        ### Exploratory analysis and visualization. Section 4.
+    # https://bioconductor.org/packages/release/workflows/vignettes/rnaseqGene/inst/doc/rnaseqGene.html#e3xploratory-analysis-and-visualization
+
+    dds <- ddsTxi
+    # 4.1 Pre-filtering the dataset
+    # Here we apply the most minimal filtering rule: removing rows of the DESeqDataSet that have no counts, or only a single count across all samples.
+    nrow(dds)
+    keep <- rowSums(counts(dds)) > 1
+    dds <- dds[keep,]
+
+    # 4.2 The variance stabilizing transformation and the rlog
+    vsd <- vst(dds, blind = FALSE)
+    rld <- rlog(dds, blind = FALSE)
+
+
+```
+## Sample distances
+> A useful first step in an RNA-seq analysis is often to assess overall similarity between samples.
+> To do that, we use the Euclidean distance between samples.
+
+
+```{r, echo = FALSE}
+sampleDists <- dist(t(assay(vsd)))
+
+sampleDistMatrix <- as.matrix( sampleDists )
+rownames(sampleDistMatrix) <- paste( vsd$Sample.Name, vsd$Group, sep = " - " )
+colnames(sampleDistMatrix) <- NULL
+colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(sampleDistMatrix,
+        clustering_distance_rows = sampleDists,
+        clustering_distance_cols = sampleDists,
+        col = colors)
+```
+
+## Principal Component Analysis (PCA) plot
+> Another way to visualize sample-to-sample distances is a principal components analysis (PCA). In this ordination method, the data points (here, the samples) are projected onto the 2D plane such that they spread out in the two directions that explain most of the differences (figure below). The x-axis is the direction that separates the data points the most. The values of the samples in this direction are written PC1. The y-axis is a direction (it must be orthogonal to the first direction) that separates the data the second most. The values of the samples in this direction are written PC2. The percent of the total variance that is contained in the direction is printed in the axis label. Note that these percentages do not add to 100%, because there are more dimensions that contain the remaining variance (although each of these remaining dimensions will explain less than the two that we see).
+
+```{r, echo = FALSE}
+plotPCA(vsd, intgroup = c("Sample.Name", "Group"))
+```
+
+## Heatmap
+> Such a clustering can also be performed for the genes. Since the clustering is only relevant for genes that actually carry a signal, one usually would only cluster a subset of the most highly variable genes. 
+> The heatmap becomes more interesting if we do not look at absolute expression strength but rather at the amount by which each gene deviates in a specific sample from the gene’s average across all samples.
+
+```{r, echo = FALSE}
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 30)
+    
+mat  <- assay(vsd)[ topVarGenes, ]
+mat  <- mat - rowMeans(mat)
+anno <- as.data.frame(colData(vsd)[,"Group"])
+rownames(anno) <- colnames(mat)
+colnames(anno) <- c("Group")
+pheatmap(mat, annotation_col = anno)
+```
