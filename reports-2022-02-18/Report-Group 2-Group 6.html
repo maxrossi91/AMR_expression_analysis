@@ -364,8 +364,17 @@ pre code {
 <p>The first column, baseMean, is a just the average of the normalized count values, divided by the size factors, taken over all samples in the DESeqDataSet. The column log2FoldChange is the effect size estimate. It tells us how much the gene’s expression seems to have changed. This value is reported on a logarithmic scale to base 2: for example, a log2 fold change of 1.5 means that the gene’s expression is increased by a multiplicative factor of 21.5≈2.82 Of course, this estimate has an uncertainty associated with it, which is available in the column lfcSE, the standard error estimate for the log2 fold change estimate. We can also express the uncertainty of a particular effect size estimate as the result of a statistical test. The purpose of a test for differential expression is to test whether the data provides sufficient evidence to conclude that this value is really different from zero. DESeq2 performs for each gene a hypothesis test to see whether evidence is sufficient to decide against the null hypothesis that there is zero effect of the treatment on the gene and that the observed difference between treatment and control was merely caused by experimental variability (i.e., the type of variability that you can expect between different samples in the same treatment group). As usual in statistics, the result of this test is reported as a p value, and it is found in the column pvalue. Remember that a p value indicates the probability that a fold change as strong as the observed one, or even stronger, would be seen under the situation described by the null hypothesis.</p>
 <p>From <a href="https://bioconductor.org/packages/release/workflows/vignettes/rnaseqGene/inst/doc/rnaseqGene.html#building-the-results-table">here</a>.</p>
 </blockquote>
-<table>
+<table style="width:100%;">
 <caption>List of genes with lowest pvalue</caption>
+<colgroup>
+<col width="38%"></col>
+<col width="12%"></col>
+<col width="14%"></col>
+<col width="8%"></col>
+<col width="9%"></col>
+<col width="6%"></col>
+<col width="7%"></col>
+</colgroup>
 <thead>
 <tr class="header">
 <th align="left"></th>
@@ -487,7 +496,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="odd">
-<td align="left">HFS63_RS21925</td>
+<td align="left">335990..336105 /gene=rrf</td>
 <td align="right">1117.8245</td>
 <td align="right">13.714171</td>
 <td align="right">1.817601</td>
@@ -496,7 +505,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="even">
-<td align="left">HFS63_RS22815</td>
+<td align="left">150359..150474 /gene=rrf</td>
 <td align="right">1117.8245</td>
 <td align="right">13.714171</td>
 <td align="right">1.817601</td>
@@ -505,7 +514,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="odd">
-<td align="left">HFS63_RS02275</td>
+<td align="left">complement(4379232..4379347) /gene=rrf</td>
 <td align="right">834.6353</td>
 <td align="right">13.292675</td>
 <td align="right">1.815597</td>
@@ -514,7 +523,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="even">
-<td align="left">HFS63_RS06170</td>
+<td align="left">1114651..1114766 /gene=rrf</td>
 <td align="right">708.4246</td>
 <td align="right">13.056131</td>
 <td align="right">1.815174</td>
@@ -523,7 +532,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="odd">
-<td align="left">HFS63_RS18370</td>
+<td align="left">complement(3573497..3573612) /gene=rrf</td>
 <td align="right">708.4246</td>
 <td align="right">13.056131</td>
 <td align="right">1.815174</td>
@@ -532,7 +541,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="even">
-<td align="left">HFS63_RS21715</td>
+<td align="left">377977..378092 /gene=rrf</td>
 <td align="right">698.0482</td>
 <td align="right">13.034829</td>
 <td align="right">1.817796</td>
@@ -541,7 +550,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="odd">
-<td align="left">HFS63_RS22600</td>
+<td align="left">192495..192610 /gene=rrf</td>
 <td align="right">668.0622</td>
 <td align="right">12.971462</td>
 <td align="right">1.817662</td>
@@ -550,7 +559,7 @@ pre code {
 <td align="right">0.0e+00</td>
 </tr>
 <tr class="even">
-<td align="left">HFS63_RS23295</td>
+<td align="left">55769..55884 /gene=rrf</td>
 <td align="right">668.0622</td>
 <td align="right">12.971462</td>
 <td align="right">1.817662</td>

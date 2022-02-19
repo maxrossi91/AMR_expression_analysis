@@ -39,6 +39,10 @@ tx2gene <- rbind(tx2geneSalmonella, tx2geneEcoli, tx2genePlasmid)
 
 # Load samples filenames and descriptions
 samples <- read.csv(file.path("samples-2022-02-18.csv"), header=TRUE)
+# Load the gene names
+annotation <- read.csv(file.path("gene-names-unique.csv"), header=TRUE)
+
+
 
 
 conditionA <- params$conditionA
@@ -85,6 +89,17 @@ ddsTxi <- DESeqDataSetFromTximport(txi,
                                 design = ~ Group)
 
 dds <- DESeq(ddsTxi)
+
+# Rename some of the genes with names
+t <- data.frame(gene_id=rownames(dds),gene_name=rownames(dds))
+for (row in 1:nrow(annotation)) {
+    gene_id <- annotation[row, "gene_id"]
+    gene_name <- annotation[row, "gene_name"]
+    t["gene_name"][t["gene_name"] == gene_id] <- gene_name
+}
+gene_name <- t$gene_name
+mcols(dds) <- cbind(mcols(dds), gene_name)
+rownames(dds) <- mcols(dds)$gene_name
 
 ```
 
