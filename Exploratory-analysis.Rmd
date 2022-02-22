@@ -146,6 +146,17 @@ boxplot(log10(assays(dds)[["cooks"]]), range=0, las=2,
     # https://bioconductor.org/packages/release/workflows/vignettes/rnaseqGene/inst/doc/rnaseqGene.html#e3xploratory-analysis-and-visualization
 
     dds <- ddsTxi
+
+    # Rename some of the genes with names
+    t <- data.frame(gene_id=rownames(dds),gene_name=rownames(dds))
+    for (row in 1:nrow(annotation)) {
+        gene_id <- annotation[row, "gene_id"]
+        gene_name <- annotation[row, "gene_name"]
+        t["gene_name"][t["gene_name"] == gene_id] <- gene_name
+    }
+    gene_name <- t$gene_name
+    mcols(dds) <- cbind(mcols(dds), gene_name)
+    rownames(dds) <- mcols(dds)$gene_name
     # 4.1 Pre-filtering the dataset
     # Here we apply the most minimal filtering rule: removing rows of the DESeqDataSet that have no counts, or only a single count across all samples.
     nrow(dds)
