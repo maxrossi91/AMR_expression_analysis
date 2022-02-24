@@ -130,6 +130,8 @@ tmp = maineffg[maineffg$baseMean > 1,]
 pval_tab=head(tmp[order(tmp$pvalue),], 30)
 
 kable(pval_tab, caption = "List of genes with lowest pvalue")
+write.table(tmp,file = paste("p_values_table/gene_names",conditionA,conditionB,sep="_"),quote = FALSE, sep=",")
+
 ```
 
 ## Cook's distance
@@ -207,4 +209,5 @@ anno <- as.data.frame(colData(vsd)[,"Group"])
 rownames(anno) <- colnames(mat)
 colnames(anno) <- c("Group")
 pheatmap(mat, annotation_col = anno)
+write.table(rownames(mat),file = paste("heatmaps/gene_names",conditionA,conditionB,sep="_"),quote = FALSE)
 ```
